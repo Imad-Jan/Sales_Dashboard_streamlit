@@ -21,8 +21,9 @@ Superstore Sales with Streamlit is a data visualization and analysis project tha
 
 ## Deployment
 
-[Streamlit App]((https://dashboard-for-salesdata.streamlit.app/)
-]
+[[Streamlit App]((https://dashboard-for-salesdata.streamlit.app/)]
+
+
 This project is a Streamlit web application that allows users to analyze and visualize sales data from a fictional superstore. The application provides various features and visualizations to gain insights into the sales data, including filtering by date, region, state, and city, as well as visualizing sales by category, region, and more.
 
 ## Getting Started
