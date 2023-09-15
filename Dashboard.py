@@ -3,103 +3,35 @@ import plotly.express as px
 import pandas as pd
 import os
 import warnings
-
 warnings.filterwarnings('ignore')
+st.set_page_config(page_title="Superstore!!!", page_icon=":bar_chart:",layout="wide")
+st.title(" 	:chart: Sales Data Stats")
+st.markdown('<style>div.block-container{padding-top:1rem;color:red;}</style>',unsafe_allow_html=True)
+df = pd.read_csv("Superstore.csv", encoding="ISO-8859-1")
+col1, col2 = st.columns((2))
+df["Order Date"] = pd.to_datetime(df["Order Date"])
 
-st.set_page_config(page_title="Superstore!!!", page_icon=":bar_chart:", layout="wide")
-
-st.title(" :bar_chart: Sample SuperStore EDA")
-st.markdown('<style>div.block-container{padding-top:1rem;}</style>', unsafe_allow_html=True)
-
-# Step 1: Allow users to upload their dataset
-uploaded_file = st.file_uploader(":file_folder: Upload a file", type=["csv", "txt", "xlsx", "xls"])
-if uploaded_file is not None:
-    try:
-        df = pd.read_csv(uploaded_file, encoding="ISO-8859-1")
-    except Exception as e:
-        st.error(f"Error reading the uploaded file: {e}")
-        st.stop()  # Stop further execution
-
-    st.sidebar.header("Prepare Your Data")
-    st.sidebar.markdown("To proceed, please map your data columns to the standard labels below:")
-
-    # Create two columns to avoid covering the entire screen
-    col1, col2 = st.sidebar.columns(2)
-
-    # Step 2: Create a dictionary to map user columns to standard labels
-    column_mapping = {}
-    not_available_columns = set(df.columns)
-
-    for label in [
-        "Order ID", "Order Date", "Ship Date", "Ship Mode", "Customer ID", "Customer Name",
-        "Segment", "Country", "City", "State", "Postal Code", "Region", "Product ID",
-        "Category", "Sub-Category", "Product Name", "Sales", "Quantity", "Discount", "Profit"
-    ]:
-        selected_column = col1.selectbox(label, [""] + df.columns.tolist())
-        if selected_column:
-            column_mapping[label] = selected_column
-            not_available_columns.discard(selected_column)
-
-    for label in not_available_columns:
-        if col2.checkbox(f"Not Available: {label}", False):
-            column_mapping[label] = None
-
-    # Ensure that all selected columns are unique
-    selected_columns = set(column_mapping.values())
-    if len(selected_columns) != len(column_mapping):
-        st.error("Please ensure that each column is selected only once.")
-        st.stop()
-
-    # Handle the case where a column is not selected
-    for label in column_mapping:
-        if not column_mapping[label]:
-            df.drop(label, axis=1, inplace=True)
-
-    # Save button to pass the column mapping to variables
-    if st.button("Save Mapping"):
-        col_mapping = {key: value for key, value in column_mapping.items() if value is not None}
-
-        # You can use 'col_mapping' in your code for further analysis and visualization
-        st.write("Column Mapping:", col_mapping)
-
-    # Now you can continue with your existing code
-    col1, col2 = st.columns((2))
-    df["Order Date"] = pd.to_datetime(df["Order Date"])
-
-
-
-# Getting the min and max date 
 startDate = pd.to_datetime(df["Order Date"]).min()
 endDate = pd.to_datetime(df["Order Date"]).max()
-
 with col1:
     date1 = pd.to_datetime(st.date_input("Start Date", startDate))
-
 with col2:
     date2 = pd.to_datetime(st.date_input("End Date", endDate))
-
 df = df[(df["Order Date"] >= date1) & (df["Order Date"] <= date2)].copy()
-
 st.sidebar.header("Choose your filter: ")
-# Create for Region
-region = st.sidebar.multiselect("Pick your Region", df["Region"].unique())
+region = st.sidebar.multiselect("Pick your Region", df["Region"].unique(), key="0")
 if not region:
     df2 = df.copy()
 else:
     df2 = df[df["Region"].isin(region)]
-
-# Create for State
-state = st.sidebar.multiselect("Pick the State", df2["State"].unique())
+state = st.sidebar.multiselect("Pick the State", df2["State"].unique(), key="1")
 if not state:
     df3 = df2.copy()
 else:
     df3 = df2[df2["State"].isin(state)]
 
-# Create for City
-city = st.sidebar.multiselect("Pick the City",df3["City"].unique())
-
+city = st.sidebar.multiselect("Pick the City",df3["City"].unique(),  key="2")
 # Filter the data based on Region, State and City
-
 if not region and not state and not city:
     filtered_df = df
 elif not state and not city:
@@ -121,16 +53,32 @@ category_df = filtered_df.groupby(by = ["Category"], as_index = False)["Sales"].
 
 with col1:
     st.subheader("Category wise Sales")
-    fig = px.bar(category_df, x = "Category", y = "Sales", text = ['${:,.2f}'.format(x) for x in category_df["Sales"]],
-                 template = "seaborn")
-    st.plotly_chart(fig,use_container_width=True, height = 200)
+    fig = px.bar(category_df, x="Category", y="Sales", text=['${:,.2f}'.format(x) for x in category_df["Sales"]],
+                 template="plotly_dark", color="Category")
+    fig.update_layout(
+        paper_bgcolor="#FFFFFF",
+        plot_bgcolor="#FFFFFF",
+        font_color="#262730",
+    )
+    fig.update_traces(marker=dict(line=dict(color="#262730", width=1)))
+    fig.update_xaxes(showgrid=False)
+    fig.update_yaxes(showgrid=False)
+    st.plotly_chart(fig, use_container_width=True, height=400)
 
 with col2:
     st.subheader("Region wise Sales")
-    fig = px.pie(filtered_df, values = "Sales", names = "Region", hole = 0.5)
-    fig.update_traces(text = filtered_df["Region"], textposition = "outside")
-    st.plotly_chart(fig,use_container_width=True)
-
+    fig = px.pie(filtered_df, values="Sales", names="Region", hole=0.5)
+    fig.update_traces(text=filtered_df["Region"], textposition="outside")
+    fig.update_layout(
+        template="plotly_dark",
+        uniformtext_minsize=12,
+        uniformtext_mode="hide",
+        paper_bgcolor="#FFFFFF",
+        plot_bgcolor="#FFFFFF",
+        font_color="#262730",
+    )
+    fig.update_traces(marker=dict(line=dict(color="#262730", width=1)))
+    st.plotly_chart(fig, use_container_width=True, height=400)
 cl1, cl2 = st.columns((2))
 with cl1:
     with st.expander("Category_ViewData"):
@@ -146,7 +94,8 @@ with cl2:
         csv = region.to_csv(index = False).encode('utf-8')
         st.download_button("Download Data", data = csv, file_name = "Region.csv", mime = "text/csv",
                         help = 'Click here to download the data as a CSV file')
-        
+
+# Time series Anslysis      
 filtered_df["month_year"] = filtered_df["Order Date"].dt.to_period("M")
 st.subheader('Time Series Analysis')
 
@@ -160,47 +109,129 @@ with st.expander("View Data of TimeSeries:"):
     st.download_button('Download Data', data = csv, file_name = "TimeSeries.csv", mime ='text/csv')
 
 # Create a treem based on Region, category, sub-Category
-st.subheader("Hierarchical view of Sales using TreeMap")
-fig3 = px.treemap(filtered_df, path = ["Region","Category","Sub-Category"], values = "Sales",hover_data = ["Sales"],
-                  color = "Sub-Category")
-fig3.update_layout(width = 800, height = 650)
+st.subheader("Hierarchical view of Sales using Sunburst Chart")
+fig3 = px.sunburst(filtered_df, path=["Region", "Category", "Sub-Category"], values="Sales", color="Sub-Category")
+fig3.update_layout(width=800, height=650)
 st.plotly_chart(fig3, use_container_width=True)
 
 chart1, chart2 = st.columns((2))
 with chart1:
     st.subheader('Segment wise Sales')
-    fig = px.pie(filtered_df, values = "Sales", names = "Segment", template = "plotly_dark")
-    fig.update_traces(text = filtered_df["Segment"], textposition = "inside")
-    st.plotly_chart(fig,use_container_width=True)
-
+    fig = px.bar(filtered_df, x="Segment", y="Sales", color="Segment", template="plotly_dark")
+    fig.update_layout(title="Segment wise Sales", title_font=dict(size=20),
+                      xaxis=dict(title="Segment", title_font=dict(size=19)),
+                      yaxis=dict(title="Sales", title_font=dict(size=19)))
+    st.plotly_chart(fig, use_container_width=True)
 with chart2:
     st.subheader('Category wise Sales')
-    fig = px.pie(filtered_df, values = "Sales", names = "Category", template = "gridon")
-    fig.update_traces(text = filtered_df["Category"], textposition = "inside")
-    st.plotly_chart(fig,use_container_width=True)
-
+    fig = px.bar(filtered_df, x="Category", y="Sales", color="Category", template="plotly_dark")
+    fig.update_layout(title="Category wise Sales", title_font=dict(size=20),
+                      xaxis=dict(title="Category", title_font=dict(size=19)),
+                      yaxis=dict(title="Sales", title_font=dict(size=19)))
+    st.plotly_chart(fig, use_container_width=True)
 import plotly.figure_factory as ff
-st.subheader(":point_right: Month wise Sub-Category Sales Summary")
+st.subheader("Month wise Sub-Category Sales Summary")
+st.markdown('<style>div.block-container{padding-top:1rem;}</style>',unsafe_allow_html=True)
 with st.expander("Summary_Table"):
     df_sample = df[0:5][["Region","State","City","Category","Sales","Profit","Quantity"]]
     fig = ff.create_table(df_sample, colorscale = "Cividis")
     st.plotly_chart(fig, use_container_width=True)
-
     st.markdown("Month wise sub-Category Table")
     filtered_df["month"] = filtered_df["Order Date"].dt.month_name()
     sub_category_Year = pd.pivot_table(data = filtered_df, values = "Sales", index = ["Sub-Category"],columns = "month")
     st.write(sub_category_Year.style.background_gradient(cmap="Blues"))
-
-# Create a scatter plot
-data1 = px.scatter(filtered_df, x = "Sales", y = "Profit", size = "Quantity")
-data1['layout'].update(title="Relationship between Sales and Profits using Scatter Plot.",
-                       titlefont = dict(size=20),xaxis = dict(title="Sales",titlefont=dict(size=19)),
-                       yaxis = dict(title = "Profit", titlefont = dict(size=19)))
-st.plotly_chart(data1,use_container_width=True)
+# Create a bar chart
+fig = px.bar(filtered_df, x="Category", y="Sales", color="Sub-Category", barmode="group")
+fig.update_layout(title="Sales by Category and Sub-Category", title_font=dict(size=20),
+                  xaxis=dict(title="Category", title_font=dict(size=19)),
+                  yaxis=dict(title="Sales", title_font=dict(size=19)))
+st.plotly_chart(fig, use_container_width=True)
 
 with st.expander("View Data"):
     st.write(filtered_df.iloc[:500,1:20:2].style.background_gradient(cmap="Oranges"))
-
 # Download orginal DataSet
 csv = df.to_csv(index = False).encode('utf-8')
 st.download_button('Download Data', data = csv, file_name = "Data.csv",mime = "text/csv")
+st.markdown("-----")
+
+####Customer Section
+
+st.header("Customers Analysis")
+
+top_customers = df.groupby("Customer Name")["Quantity"].sum().reset_index()
+top_customers = top_customers.sort_values(by="Quantity", ascending=False).head(10)
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.subheader("Top Customers")
+    st.write("With High Purchase Record")
+    st.write(top_customers)  
+with col2:
+    st.subheader("Top Customers")
+    st.write("With High Purchase Record")
+    fig = px.bar(top_customers, x="Customer Name", y="Quantity", labels={"Customer Name": "Customer", "Quantity": "Total Quantity"})
+    fig.update_layout(xaxis_title="Customer", yaxis_title="Total Quantity")
+    st.plotly_chart(fig, use_container_width=True)
+with col3:
+    st.subheader("Customers by State")
+    st.write("Stats with Highest Customer")
+    customer_by_state = df.groupby("State")["Customer Name"].nunique().reset_index()
+    fig_state = px.pie(customer_by_state, values="Customer Name", names="State", title="Customers by State")
+    fig_state.update_traces(textposition='inside', textinfo='percent+label')
+    fig_state.update_layout(showlegend=False)
+    st.plotly_chart(fig_state, use_container_width=True)
+    st.markdown("-----")
+#relation chart showing product sales compared to the total number of customers in a state
+st.subheader("Product Sales vs. Total Customers by State")
+state_sales = df.groupby("State")["Sales"].sum().reset_index()
+customer_count_by_state = df.groupby("State")["Customer Name"].nunique().reset_index()
+relation_df = pd.merge(state_sales, customer_count_by_state, on="State", suffixes=("_sales", "_customers"))
+# Create the relation chart
+fig_relation = px.scatter(relation_df, x="Sales", y="Customer Name", text="State",
+                          labels={"Sales": "Total Sales", "Customer Name": "Total Customers"},
+                          title="Product Sales vs. Total Customers by State")
+fig_relation.update_traces(textposition='top center')
+st.plotly_chart(fig_relation, use_container_width=True)
+st.markdown("-----")
+
+
+
+st.header("Product Analysis")
+# Products with the most sales
+product_sales = df.groupby("Product Name")["Sales"].sum().reset_index()
+top_products = product_sales.sort_values(by="Sales", ascending=False).head(10)
+
+# bar chart for the top products
+st.subheader("Top Products by Sales (Bar Chart)")
+fig_products = px.bar(top_products, x="Sales", y="Product Name",
+                      labels={"Sales": "Total Sales", "Product Name": "Product"},
+                      title="Top Products by Sales",
+                      orientation='h', # Horizontal bar chart
+                      color_discrete_sequence=px.colors.qualitative.Set1)  # Beautiful color palette
+fig_products.update_layout(yaxis_title="Product", xaxis_title="Total Sales", title_font=dict(size=20))
+st.plotly_chart(fig_products, use_container_width=True)
+st.markdown("-----")
+
+# Visualize Profit for all products
+st.subheader("Profit Analysis")
+fig_Profit_margin = px.bar(df, x="Product Name", y="Profit",
+                          labels={"Product Name": "Product", "Profit": "Profit (%)"},
+                          title="Profit Analysis",
+                          color_discrete_sequence=px.colors.qualitative.Set1)
+fig_Profit_margin.update_layout(xaxis_title="Product", yaxis_title="Profit (%)", title_font=dict(size=20))
+fig_Profit_margin.update_traces(text=["{:.2f}%".format(x) for x in df["Profit"]], textposition='outside')
+st.plotly_chart(fig_Profit_margin, use_container_width=True)
+st.markdown("-----")
+
+#products with the highest and lowest Profits
+
+highest_Profit_margin_product = df[df['Profit'] == df['Profit'].max()]
+lowest_Profit_margin_product = df[df['Profit'] == df['Profit'].min()]
+profit, loss = st.columns((2))
+with profit: 
+        st.write("Highest Profit Product:")
+        st.write(highest_Profit_margin_product[["Product Name", "Profit"]])
+with  loss:
+        st.write("Lowest Profit Product:")
+        st.write(lowest_Profit_margin_product[["Product Name", "Profit"]])
